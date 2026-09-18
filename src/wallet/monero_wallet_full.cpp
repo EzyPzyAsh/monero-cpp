@@ -1059,12 +1059,16 @@ namespace monero {
     return key_file_exists;
   }
 
-  monero_wallet_full* monero_wallet_full::open_wallet(const std::string& path, const std::string& password, const monero_network_type network_type, bool regtest) {
+  monero_wallet_full* monero_wallet_full::open_wallet(const std::string& path, const std::string& password, const monero_network_type network_type, bool regtest, const boost::optional<uint64_t>& account_lookahead, const boost::optional<uint64_t>& subaddress_lookahead) {
     MTRACE("open_wallet(" << path << ", ***, " << network_type << ")");
     monero_wallet_full* wallet = new monero_wallet_full();
     wallet->m_w2 = std::unique_ptr<tools::wallet2>(new tools::wallet2(static_cast<cryptonote::network_type>(network_type), 1, true));
+    if (account_lookahead != boost::none || subaddress_lookahead != boost::none) {
+      auto current = wallet->m_w2->get_subaddress_lookahead();
+      wallet->m_w2->set_subaddress_lookahead_config(account_lookahead == boost::none ? current.first : account_lookahead.get(), subaddress_lookahead == boost::none ? current.second : subaddress_lookahead.get());
+    }
     wallet->m_w2->load(path, password);
-    wallet->m_w2->init("");
+    wallet->m_w2->init("", boost::none, "", 0, true, epee::net_utils::ssl_support_t::e_ssl_support_disabled);
     if (regtest) {
       if (network_type != monero_network_type::MAINNET) throw std::runtime_error("Network type must be mainnet when using regtest option");
       wallet->m_w2->allow_mismatched_daemon_version(true);
@@ -1080,7 +1084,8 @@ namespace monero {
     if (http_client_factory == nullptr) wallet->m_w2 = std::unique_ptr<tools::wallet2>(new tools::wallet2(static_cast<cryptonote::network_type>(network_type), 1, true));
     else wallet->m_w2 = std::unique_ptr<tools::wallet2>(new tools::wallet2(static_cast<cryptonote::network_type>(network_type), 1, true, std::move(http_client_factory)));
     wallet->m_w2->load("", password, keys_data, cache_data);
-    wallet->m_w2->init("");
+    // avoid generating a throwaway RSA-4096 cert for this no-daemon init
+    wallet->m_w2->init("", boost::none, "", 0, true, epee::net_utils::ssl_support_t::e_ssl_support_disabled);
     if (regtest) {
       if (network_type != monero_network_type::MAINNET) throw std::runtime_error("Network type must be mainnet when using regtest option");
       wallet->m_w2->allow_mismatched_daemon_version(true);

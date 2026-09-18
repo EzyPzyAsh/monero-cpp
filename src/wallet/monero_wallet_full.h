@@ -95,7 +95,7 @@ namespace monero {
      * @param regtest enable regtest
      * @return a pointer to the wallet instance
      */
-    static monero_wallet_full* open_wallet(const std::string& path, const std::string& password, const monero_network_type network_type, bool regtest = false);
+    static monero_wallet_full* open_wallet(const std::string& path, const std::string& password, const monero_network_type network_type, bool regtest = false, const boost::optional<uint64_t>& account_lookahead = boost::none, const boost::optional<uint64_t>& subaddress_lookahead = boost::none);
 
     /**
      * Open an in-memory wallet from existing data buffers.
